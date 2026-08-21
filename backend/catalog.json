@@ -1,0 +1,47 @@
+[
+  {
+    "id": "p1",
+    "name": "Pro Podcast Microphone",
+    "description": "Studio-quality USB condenser microphone with noise cancellation. Perfect for podcasting, streaming, and voiceovers.",
+    "price": 4999,
+    "category": "audio",
+    "inStock": true,
+    "image": "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=500&q=80"
+  },
+  {
+    "id": "p2",
+    "name": "Ergonomic Desk Chair",
+    "description": "Premium mesh back office chair with adjustable lumbar support and 3D armrests.",
+    "price": 12500,
+    "category": "furniture",
+    "inStock": true,
+    "image": "https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?w=500&q=80"
+  },
+  {
+    "id": "p3",
+    "name": "Mechanical Keyboard (Blue Switches)",
+    "description": "Tactile and clicky mechanical keyboard with customizable RGB backlighting.",
+    "price": 6500,
+    "category": "peripherals",
+    "inStock": true,
+    "image": "https://images.unsplash.com/photo-1595225476474-87563907a212?w=500&q=80"
+  },
+  {
+    "id": "p4",
+    "name": "4K Ultra-Wide Monitor",
+    "description": "34-inch curved ultra-wide monitor for immersive productivity and gaming.",
+    "price": 35000,
+    "category": "displays",
+    "inStock": false,
+    "image": "https://images.unsplash.com/photo-1527443195645-1133f7f28990?w=500&q=80"
+  },
+  {
+    "id": "p5",
+    "name": "Noise Cancelling Headphones",
+    "description": "Over-ear wireless headphones with industry-leading active noise cancellation.",
+    "price": 18999,
+    "category": "audio",
+    "inStock": true,
+    "image": "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=500&q=80"
+  }
+]
