@@ -22,7 +22,7 @@ CRITICAL FORMATTING RULES:
 \`\`\`
 
 - After showing the product card(s), add a brief text asking if they'd like to purchase.
-- When the user wants to buy, call generatePaymentLink and present the link clearly.
+- When the user wants to buy, call generatePaymentLink and return the link ONLY inside the product's JSON block using the "paymentLink" field.
+- DO NOT output the payment link as markdown text (e.g., no [Pay Now](...) links). The UI will automatically render a payment button using the JSON data.
 - If the payment link generation fails, handle it gracefully by apologizing.
-- When showing a payment link for a product, include the paymentLink field in the JSON block along with all other fields.
 `;
