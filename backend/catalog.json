@@ -6,42 +6,124 @@
     "price": 4999,
     "category": "audio",
     "inStock": true,
-    "image": "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=500&q=80"
+    "image": "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&q=80",
+    "images": [
+      "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&q=80"
+    ],
+    "highlights": [
+      "USB-C plug-and-play, no drivers needed",
+      "Cardioid polar pattern reduces background noise",
+      "Built-in pop filter and shock mount",
+      "48kHz / 16-bit recording quality",
+      "Compatible with Windows, Mac, and Linux"
+    ],
+    "specs": {
+      "Type": "USB Condenser",
+      "Frequency Range": "20Hz – 20kHz",
+      "Connectivity": "USB-C",
+      "Weight": "320g"
+    }
   },
   {
     "id": "p2",
     "name": "Ergonomic Desk Chair",
-    "description": "Premium mesh back office chair with adjustable lumbar support and 3D armrests.",
+    "description": "Premium mesh back office chair with adjustable lumbar support and 3D armrests. Designed for all-day comfort during long work sessions.",
     "price": 12500,
     "category": "furniture",
     "inStock": true,
-    "image": "https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?w=500&q=80"
+    "image": "https://images.unsplash.com/photo-1688578735427-994ecdea3ea4?w=800&q=80",
+    "images": [
+      "https://images.unsplash.com/photo-1688578735427-994ecdea3ea4?w=800&q=80",
+      "https://images.unsplash.com/photo-1688578735997-32626d2babd4?w=800&q=80"
+    ],
+    "highlights": [
+      "Breathable mesh back prevents heat buildup",
+      "Adjustable lumbar support with memory foam",
+      "3D armrests with height, width, and angle control",
+      "135° recline with tension adjustment",
+      "Heavy-duty nylon base supports up to 150kg"
+    ],
+    "specs": {
+      "Material": "Mesh + Memory Foam",
+      "Max Load": "150 kg",
+      "Adjustable Height": "42–52 cm",
+      "Warranty": "3 Years"
+    }
   },
   {
     "id": "p3",
     "name": "Mechanical Keyboard (Blue Switches)",
-    "description": "Tactile and clicky mechanical keyboard with customizable RGB backlighting.",
+    "description": "Tactile and clicky mechanical keyboard with customizable RGB backlighting. Features hot-swappable switches and durable PBT keycaps.",
     "price": 6500,
     "category": "peripherals",
     "inStock": true,
-    "image": "https://images.unsplash.com/photo-1595225476474-87563907a212?w=500&q=80"
+    "image": "https://images.unsplash.com/photo-1680116778736-0161d612c5a1?w=800&q=80",
+    "images": [
+      "https://images.unsplash.com/photo-1680116778736-0161d612c5a1?w=800&q=80"
+    ],
+    "highlights": [
+      "Hot-swappable switches — customize without soldering",
+      "PBT double-shot keycaps for lasting legends",
+      "Per-key RGB with 16.8M color options",
+      "N-key rollover and anti-ghosting",
+      "Detachable USB-C braided cable"
+    ],
+    "specs": {
+      "Switch Type": "Blue (Clicky)",
+      "Layout": "Full-size 104 keys",
+      "Connectivity": "USB-C (Wired)",
+      "Keycap Material": "PBT"
+    }
   },
   {
     "id": "p4",
     "name": "4K Ultra-Wide Monitor",
-    "description": "34-inch curved ultra-wide monitor for immersive productivity and gaming.",
+    "description": "34-inch curved ultra-wide monitor for immersive productivity and gaming. Features a 1ms response time and 144Hz refresh rate.",
     "price": 35000,
     "category": "displays",
     "inStock": false,
-    "image": "https://images.unsplash.com/photo-1527443195645-1133f7f28990?w=500&q=80"
+    "image": "https://images.unsplash.com/photo-1527443195645-1133f7f28990?w=800&q=80",
+    "images": [
+      "https://images.unsplash.com/photo-1527443195645-1133f7f28990?w=800&q=80",
+      "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&q=80"
+    ],
+    "highlights": [
+      "3440 x 1440 UWQHD resolution",
+      "1500R curvature for immersive viewing",
+      "144Hz refresh rate with AMD FreeSync",
+      "1ms MPRT response time",
+      "USB-C with 65W Power Delivery"
+    ],
+    "specs": {
+      "Panel": "VA Curved",
+      "Resolution": "3440 x 1440",
+      "Refresh Rate": "144Hz",
+      "Ports": "HDMI 2.0, DP 1.4, USB-C"
+    }
   },
   {
     "id": "p5",
     "name": "Noise Cancelling Headphones",
-    "description": "Over-ear wireless headphones with industry-leading active noise cancellation.",
+    "description": "Over-ear wireless headphones with industry-leading active noise cancellation. Up to 30 hours of battery life with quick charge support.",
     "price": 18999,
     "category": "audio",
     "inStock": true,
-    "image": "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=500&q=80"
+    "image": "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=800&q=80",
+    "images": [
+      "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=800&q=80"
+    ],
+    "highlights": [
+      "Adaptive ANC adjusts to your environment",
+      "30-hour battery, 5-min charge = 3 hours playback",
+      "40mm custom drivers with Hi-Res Audio",
+      "Multipoint connection (2 devices simultaneously)",
+      "Foldable design with premium carry case"
+    ],
+    "specs": {
+      "Driver Size": "40mm",
+      "Battery": "30 hours (ANC on)",
+      "Connectivity": "Bluetooth 5.3",
+      "Weight": "254g"
+    }
   }
 ]
