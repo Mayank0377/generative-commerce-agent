@@ -118,8 +118,9 @@ function ProductCard({ product, onClick, onSimulatePayment }) {
   const [imgError, setImgError] = useState(false)
 
   return (
-    <div className="my-0.5 rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.08] shadow-md max-w-[340px] transition-all duration-300 group flex flex-col">
-      <div onClick={() => onClick?.(product)} className="flex px-3 pt-3 pb-2 gap-3 cursor-pointer hover:bg-white/[0.05] transition-colors">
+    <div className="my-0.5 rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.08] shadow-md max-w-[340px] transition-all duration-300 group flex flex-col hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(108,99,255,0.15)] hover:border-[#6C63FF]/30 relative">
+      <div className="absolute inset-0 bg-gradient-to-t from-[#6C63FF]/10 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-300" />
+      <div onClick={() => onClick?.(product)} className="flex px-3 pt-3 pb-2 gap-3 cursor-pointer hover:bg-white/[0.05] transition-colors relative z-10">
         {/* Thumbnail */}
         {product.image && (
           <div className="w-20 h-20 shrink-0 rounded-xl overflow-hidden relative border border-white/[0.05]">
@@ -888,7 +889,7 @@ export default function App() {
         {/* Messages */}
         <section className="flex-1 overflow-y-auto px-7 py-4 flex flex-col gap-5 scroll-smooth" style={{ scrollbarWidth: 'thin', scrollbarColor: '#2a2a4a #080810' }}>
           {msgs.map((m, i) => (
-            <div key={i} className={`flex flex-col animate-[fadeIn_0.3s_ease] ${m.from === 'user' ? 'self-end items-end max-w-[85%] md:max-w-[60%]' : 'self-start items-start max-w-[90%] md:max-w-[520px]'}`}>
+            <div key={i} className={`flex flex-col ${m.from === 'user' ? 'self-end items-end max-w-[85%] md:max-w-[60%] animate-[springUp_0.4s_ease-out]' : 'self-start items-start max-w-[90%] md:max-w-[520px] animate-[springUp_0.6s_cubic-bezier(0.175,0.885,0.32,1.275)]'}`}>
               <span className={`text-[11px] font-semibold text-gray-500 mb-1.5 flex items-center gap-1.5`}>
                 {m.from === 'user'
                   ? <><img src={user?.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'Felix'}`} className="w-4 h-4 rounded-full bg-white/10" /> {user?.name?.split(' ')[0] || 'You'}</>
@@ -913,13 +914,16 @@ export default function App() {
               <span className={`text-[11px] font-semibold text-gray-500 mb-1.5 flex items-center gap-1.5`}>
                 <span className="text-sm">🤖</span> Shopping Agent
               </span>
-              <div className="px-5 py-4 bg-[#0f0f1a] border border-white/[0.07] rounded-2xl rounded-bl-sm flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#6C63FF] animate-bounce [animation-delay:0ms]" />
-                  <span className="w-2 h-2 rounded-full bg-[#6C63FF] animate-bounce [animation-delay:150ms]" />
-                  <span className="w-2 h-2 rounded-full bg-[#6C63FF] animate-bounce [animation-delay:300ms]" />
+              <div className="px-5 py-3 bg-[#0f0f1a] border border-white/[0.07] rounded-2xl rounded-bl-sm flex flex-col gap-2 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent bg-[length:200%_100%] animate-[shimmer_2s_linear_infinite]" />
+                <div className="flex items-center gap-2 relative z-10">
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-[#6C63FF] to-cyan-400 animate-pulse" />
+                  <span className="text-[13px] text-[#6C63FF] font-medium tracking-wide">Agent is thinking...</span>
                 </div>
-                <span className="text-xs text-gray-500">Thinking...</span>
+                <div className="flex flex-col gap-1.5 mt-1 relative z-10">
+                  <div className="h-1.5 w-32 bg-white/10 rounded-full" />
+                  <div className="h-1.5 w-24 bg-white/10 rounded-full" />
+                </div>
               </div>
             </div>
           )}
@@ -934,8 +938,8 @@ export default function App() {
               <style>{`.hide-scroll::-webkit-scrollbar { display: none; }`}</style>
               <div className="flex gap-2 w-max px-4 mx-auto">
                 {[...CHIPS, ...CHIPS, ...CHIPS].map((c, i) => (
-                  <button key={i} onClick={() => send(c.text)}
-                    className="shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] font-medium text-gray-400 bg-[#171730] border border-white/[0.07] hover:border-[#6C63FF]/40 hover:text-[#6C63FF] hover:bg-[#6C63FF]/10 hover:-translate-y-px hover:shadow-md hover:shadow-[#6C63FF]/10 transition-all cursor-pointer active:scale-95">
+                  <button key={i} onClick={() => send(c.text)} style={{ animationDelay: `${i * 60}ms` }}
+                    className="shrink-0 animate-[springUp_0.5s_both] px-3.5 py-1.5 rounded-full text-[12.5px] font-medium text-gray-400 bg-[#171730] border border-white/[0.07] hover:border-[#6C63FF]/40 hover:text-[#6C63FF] hover:bg-[#6C63FF]/10 hover:-translate-y-px hover:shadow-md hover:shadow-[#6C63FF]/10 transition-all cursor-pointer active:scale-95">
                     {c.label}
                   </button>
                 ))}
@@ -1001,8 +1005,8 @@ export default function App() {
       </main>
 
       {/* Ambient glows */}
-      <div className="fixed -top-[18%] -left-[8%] w-[44vw] h-[44vw] rounded-full bg-[radial-gradient(circle,rgba(108,99,255,0.12)_0%,transparent_70%)] pointer-events-none z-0" />
-      <div className="fixed -bottom-[22%] -right-[8%] w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,rgba(6,182,212,0.08)_0%,transparent_70%)] pointer-events-none z-0" />
+      <div className="fixed -top-[18%] -left-[8%] w-[44vw] h-[44vw] rounded-full bg-[radial-gradient(circle,rgba(108,99,255,0.12)_0%,transparent_70%)] pointer-events-none z-0 animate-[breathe_8s_ease-in-out_infinite_alternate]" />
+      <div className="fixed -bottom-[22%] -right-[8%] w-[40vw] h-[40vw] rounded-full bg-[radial-gradient(circle,rgba(6,182,212,0.08)_0%,transparent_70%)] pointer-events-none z-0 animate-[breathe_10s_ease-in-out_infinite_alternate-reverse]" />
 
       {/* Product Detail Modal */}
       {selectedProduct && (
