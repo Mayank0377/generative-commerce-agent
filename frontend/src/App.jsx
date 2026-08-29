@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 
+const API = 'http://localhost:5000'
+const GOOGLE_CLIENT_ID = '1001617726894-2rr6n5mmhplu3l3sa5plihjp5aejqeq5.apps.googleusercontent.com'
+
+const WELCOME_MSG = { from: 'bot', text: "Hi there! 👋 I'm **Shopping Agent**.\n\nI can help you find products, compare items, and check out instantly. You can even upload a photo to search! 📸\n\nWhat are you looking for today?" }
+
 const CHIPS = [
   { label: '🎙️ Recommend a mic', text: 'I want to buy a microphone' },
   { label: '🪑 Show me chairs', text: 'Show me chairs' },
@@ -8,12 +13,13 @@ const CHIPS = [
   { label: '⌨️ Keyboards', text: 'Show me keyboards' },
   { label: '🔄 Compare products', text: 'I want to compare some products' },
   { label: '🛒 Show my cart', text: 'Show my cart' },
+  { label: '📦 Order status', text: 'What is the status of my orders?' },
 ]
 
 /* ─── Toast Notification ─── */
 function Toast({ message, type = 'error', onClose }) {
   useEffect(() => {
-    const timer = setTimeout(onClose, 4000)
+    const timer = setTimeout(onClose, 3000)
     return () => clearTimeout(timer)
   }, [onClose])
 
@@ -24,9 +30,14 @@ function Toast({ message, type = 'error', onClose }) {
   }
 
   return (
-    <div className={`fixed top-6 right-6 z-[200] px-5 py-3 rounded-xl text-white text-sm font-medium bg-gradient-to-r ${colors[type]} border backdrop-blur-xl shadow-2xl animate-[slideIn_0.3s_ease]`}>
-      {type === 'error' && '⚠️ '}{type === 'success' && '✅ '}{type === 'info' && 'ℹ️ '}
-      {message}
+    <div className={`fixed top-6 right-6 z-[200] px-4 py-2.5 flex items-center gap-3 rounded-xl text-white text-sm font-medium bg-gradient-to-r ${colors[type]} border backdrop-blur-xl shadow-2xl animate-[slideIn_0.3s_ease]`}>
+      <span>
+        {type === 'error' && '⚠️ '}{type === 'success' && '✅ '}{type === 'info' && 'ℹ️ '}
+        {message}
+      </span>
+      <button onClick={onClose} className="opacity-70 hover:opacity-100 transition-opacity p-0.5 rounded-full hover:bg-white/20">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
     </div>
   )
 }
@@ -102,7 +113,7 @@ function parseMarkdownTables(text) {
 }
 
 /* ─── Product Card (Compact) ─── */
-function ProductCard({ product, onClick }) {
+function ProductCard({ product, onClick, onSimulatePayment }) {
   const priceFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(product.price)
   const [imgError, setImgError] = useState(false)
 
@@ -152,6 +163,13 @@ function ProductCard({ product, onClick }) {
             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-[14px] font-semibold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 shadow-md shadow-emerald-500/20 hover:-translate-y-0.5 hover:shadow-emerald-500/40 transition-all no-underline">
             💳 Pay via Razorpay ↗
           </a>
+          {/* Simulate Payment for testing */}
+          {product.orderId && onSimulatePayment && (
+            <button onClick={() => onSimulatePayment(product.orderId)}
+              className="flex items-center justify-center gap-1.5 w-full mt-2 py-2 rounded-xl text-[12px] font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all cursor-pointer">
+              ⚡ Simulate Payment (Test Mode)
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -384,7 +402,7 @@ function ProductModal({ product, onClose, onBuy, onAddToCart }) {
 }
 
 /* ─── Message Content Renderer ─── */
-function Msg({ text, onProductClick }) {
+function Msg({ text, onProductClick, onSimulatePayment }) {
   // 1. Try to detect structured product JSON blocks: ```json ... ```
   const jsonBlockRe = /```json\s*([\s\S]*?)```/g
   const hasJson = jsonBlockRe.test(text)
@@ -414,7 +432,7 @@ function Msg({ text, onProductClick }) {
       <div className="flex flex-col gap-1.5 max-w-[340px]">
         {segments.map((seg, i) => {
           if (seg.type === 'products') {
-            return seg.content.map((p, j) => <ProductCard key={`${i}-${j}`} product={p} onClick={onProductClick} />)
+            return seg.content.map((p, j) => <ProductCard key={`${i}-${j}`} product={p} onClick={onProductClick} onSimulatePayment={onSimulatePayment} />)
           }
           return <div key={i} className="text-[14px] text-gray-300 px-1"><RichText text={seg.content} /></div>
         })}
@@ -543,10 +561,33 @@ function CartPanel({ cart, onClose, onCheckout, onRemove }) {
 
 /* ─── Main App ─── */
 export default function App() {
-  const [msgs, setMsgs] = useState([
-    { from: 'bot', text: "Hi there! 👋 I'm **ShopAgent** — your AI-powered shopping assistant.\n\nHere's what I can do:\n- 🔍 **Search & recommend** products from our catalog\n- 🛒 **Manage your cart** — add, remove, or view items\n- 🔄 **Compare products** side by side\n- 💳 **Instant checkout** via Razorpay\n\nWhat are you looking for today?" },
-  ])
-  const [history, setHistory] = useState([])
+  // ─── Auth State ───
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('shopagent_user')) } catch { return null }
+  })
+  const getAuthHeaders = useCallback(() => {
+    const headers = { 'Content-Type': 'application/json' }
+    const stored = localStorage.getItem('shopagent_token')
+    if (stored) headers['Authorization'] = `Bearer ${stored}`
+    return headers
+  }, [])
+
+  // ─── Chat State (restored from localStorage if signed in) ───
+  const [msgs, setMsgs] = useState(() => {
+    try {
+      const key = user?.email ? `shopagent_msgs_${user.email}` : null
+      if (key) { const saved = localStorage.getItem(key); if (saved) return JSON.parse(saved) }
+    } catch {}
+    return [WELCOME_MSG]
+  })
+  const [history, setHistory] = useState(() => {
+    try {
+      const key = user?.email ? `shopagent_history_${user.email}` : null
+      if (key) { const saved = localStorage.getItem(key); if (saved) return JSON.parse(saved) }
+    } catch {}
+    return []
+  })
+
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [chips, setChips] = useState(true)
@@ -555,9 +596,76 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [cartData, setCartData] = useState({ cart: [], itemCount: 0, total: 0 })
   const [showCart, setShowCart] = useState(false)
+  const [imagePreview, setImagePreview] = useState(null) // { data, mimeType, url }
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
   const endRef = useRef(null)
   const inputRef = useRef(null)
   const chipsRef = useRef(null)
+  const fileInputRef = useRef(null)
+  const googleButtonRef = useRef(null)
+
+  // ─── Persist chat to localStorage when signed in ───
+  useEffect(() => {
+    if (user?.email) {
+      localStorage.setItem(`shopagent_msgs_${user.email}`, JSON.stringify(msgs))
+      localStorage.setItem(`shopagent_history_${user.email}`, JSON.stringify(history))
+    }
+  }, [msgs, history, user])
+
+  // ─── Google Sign-In ───
+  useEffect(() => {
+    if (typeof google === 'undefined') return
+    const initGoogle = () => {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          try {
+            const r = await fetch(`${API}/api/auth/google`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ credential: response.credential }),
+            })
+            const data = await r.json()
+            if (data.token) {
+              localStorage.setItem('shopagent_token', data.token)
+              localStorage.setItem('shopagent_user', JSON.stringify(data.user))
+              setUser(data.user)
+              showToast(`Welcome, ${data.user.name}!`, 'success')
+            }
+          } catch { showToast('Sign-in failed', 'error') }
+        },
+      })
+      setIsGoogleLoaded(true)
+    }
+    // Wait for the Google script to load
+    if (window.google?.accounts?.id) initGoogle()
+    else {
+      const timer = setInterval(() => {
+        if (window.google?.accounts?.id) { clearInterval(timer); initGoogle() }
+      }, 200)
+      return () => clearInterval(timer)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isGoogleLoaded && !user && googleButtonRef.current) {
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'filled_black',
+        size: 'medium',
+        shape: 'pill',
+        text: 'signin_with'
+      })
+    }
+  }, [isGoogleLoaded, user])
+
+  const handleSignOut = useCallback(() => {
+    localStorage.removeItem('shopagent_token')
+    localStorage.removeItem('shopagent_user')
+    setUser(null)
+    setMsgs([WELCOME_MSG])
+    setHistory([])
+    showToast('Signed out', 'info')
+  }, [])
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs, loading])
 
@@ -565,54 +673,30 @@ export default function App() {
   useEffect(() => {
     const el = chipsRef.current
     if (!el || !chips) return
-
-    // Jump to middle set on mount
-    if (el.scrollLeft === 0) {
-      el.scrollLeft = el.scrollWidth / 3
-    }
-
-    const handleWheel = (e) => {
-      if (e.deltaY !== 0) {
-        e.preventDefault()
-        el.scrollLeft += e.deltaY
-      }
-    }
-
+    if (el.scrollLeft === 0) el.scrollLeft = el.scrollWidth / 3
+    const handleWheel = (e) => { if (e.deltaY !== 0) { e.preventDefault(); el.scrollLeft += e.deltaY } }
     const handleScroll = () => {
-      const singleSetWidth = el.scrollWidth / 3
-      if (el.scrollLeft >= singleSetWidth * 2) {
-        el.scrollLeft -= singleSetWidth
-      } else if (el.scrollLeft <= 0) {
-        el.scrollLeft += singleSetWidth
-      }
+      const w = el.scrollWidth / 3
+      if (el.scrollLeft >= w * 2) el.scrollLeft -= w
+      else if (el.scrollLeft <= 0) el.scrollLeft += w
     }
-
     el.addEventListener('wheel', handleWheel, { passive: false })
     el.addEventListener('scroll', handleScroll, { passive: true })
-    
-    return () => {
-      el.removeEventListener('wheel', handleWheel)
-      el.removeEventListener('scroll', handleScroll)
-    }
+    return () => { el.removeEventListener('wheel', handleWheel); el.removeEventListener('scroll', handleScroll) }
   }, [chips])
 
   // Fetch cart state from backend
   const fetchCart = useCallback(async () => {
     try {
-      const r = await fetch('http://localhost:5000/api/cart')
+      const r = await fetch(`${API}/api/cart`, { headers: getAuthHeaders() })
       const d = await r.json()
       setCartData(d)
     } catch { /* silent */ }
-  }, [])
+  }, [getAuthHeaders])
 
-  // Clear cart on fresh load (when only welcome message exists) to sync with chat reset
-  useEffect(() => { 
-    if (msgs.length === 1) {
-      fetch('http://localhost:5000/api/cart/clear', { method: 'POST' }).then(() => fetchCart())
-    } else {
-      fetchCart()
-    }
-  }, [msgs])
+  // Sync cart on message changes
+  useEffect(() => { fetchCart() }, [msgs])
+
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type })
   }, [])
@@ -631,31 +715,64 @@ export default function App() {
   }, [history])
 
   const handleVoiceResult = useCallback((transcript, error) => {
-    if (error) {
-      showToast(error, 'error')
-      return
-    }
-    if (transcript) {
-      setInput(transcript)
-      // Auto-send after a brief pause so user can see what was transcribed
-      setTimeout(() => send(transcript), 300)
-    }
+    if (error) { showToast(error, 'error'); return }
+    if (transcript) { setInput(transcript); setTimeout(() => send(transcript), 300) }
   }, [history])
 
   const { listening, startListening, stopListening } = useVoiceInput(handleVoiceResult)
 
+  // ─── Image Upload for Visual Search ───
+  const handleImageSelect = useCallback((e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { showToast('Image must be under 5MB', 'error'); return }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64Full = reader.result // "data:image/png;base64,XXXX"
+      const base64Data = base64Full.split(',')[1]
+      setImagePreview({ data: base64Data, mimeType: file.type, url: base64Full })
+    }
+    reader.readAsDataURL(file)
+    e.target.value = '' // reset so same file can be re-selected
+  }, [])
+
   useEffect(() => { inputRef.current?.focus() }, [loading])
+
+  // ─── Simulate Payment ───
+  const handleSimulatePayment = useCallback(async (orderId) => {
+    try {
+      const r = await fetch(`${API}/api/razorpay/webhook`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ orderId }),
+      })
+      const d = await r.json()
+      if (d.success) showToast(`Payment confirmed for ${orderId}! Ask about your order status.`, 'success')
+      else showToast(d.error || 'Payment simulation failed', 'error')
+    } catch { showToast('Payment simulation failed', 'error') }
+  }, [getAuthHeaders])
 
   async function send(override) {
     const t = (override || input).trim()
-    if (!t || loading) return
+    if (!t && !imagePreview) return
+    if (loading) return
     setInput(''); setChips(false)
-    setMsgs(p => [...p, { from: 'user', text: t }])
+
+    // Build user message for UI (include image thumbnail if attached)
+    const userMsg = { from: 'user', text: t || '📸 [Image uploaded]' }
+    if (imagePreview) userMsg.imageUrl = imagePreview.url
+    setMsgs(p => [...p, userMsg])
+
+    // Build request body
+    const body = { message: t || 'What product from our catalog matches this image?', history }
+    if (imagePreview) {
+      body.image = { data: imagePreview.data, mimeType: imagePreview.mimeType }
+    }
+    setImagePreview(null)
     setLoading(true)
     try {
-      const r = await fetch('http://localhost:5000/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: t, history }),
+      const r = await fetch(`${API}/api/chat`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify(body),
       })
       const d = await r.json()
       if (d.error) {
@@ -671,8 +788,8 @@ export default function App() {
 
   const NAV = [
     { label: 'AI Chat', active: true, icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
-    { label: 'Catalog', active: false, badge: '5', icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> },
     { label: 'Cart', active: false, badge: cartData.itemCount > 0 ? String(cartData.itemCount) : null, icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> },
+    { label: 'Orders', active: false, icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>, action: () => send('What is the status of my orders?') },
   ]
 
   return (
@@ -693,10 +810,11 @@ export default function App() {
             S
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent font-['Outfit',system-ui,sans-serif]">
-              ShopAgent
-            </h1>
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider">AI Commerce</span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-white tracking-tight font-['Outfit',system-ui,sans-serif] flex items-center gap-2">
+                Shopping Agent
+              </span>
+            </div>
           </div>
         </div>
 
@@ -704,7 +822,7 @@ export default function App() {
         <div className="flex flex-col gap-1">
           <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-gray-500 mb-2">Menu</p>
           {NAV.map((n, i) => (
-            <div key={i} onClick={() => { if (n.label === 'Cart') { setShowCart(true); fetchCart() }; setSidebarOpen(false) }}
+            <div key={i} onClick={() => { if (n.label === 'Cart') { setShowCart(true); fetchCart() } else if (n.action) { n.action() }; setSidebarOpen(false) }}
               className={`group flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 ${
               n.active
                 ? 'bg-[#6C63FF]/15 text-[#6C63FF] border border-[#6C63FF]/30 shadow-sm shadow-[#6C63FF]/10'
@@ -725,10 +843,7 @@ export default function App() {
 
         {/* Footer */}
         <div className="mt-auto p-4 rounded-2xl bg-gradient-to-br from-[#171730] to-[#12122a] border border-white/[0.07] backdrop-blur-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-[#6C63FF] shadow-[0_0_8px] shadow-[#6C63FF]/50" />
-            <strong className="text-xs text-[#6C63FF] uppercase tracking-wider">AI Commerce</strong>
-          </div>
+
           <p className="text-[12px] text-gray-400 leading-relaxed">Conversational shopping with AI-powered search, smart cart, product comparison, and instant Razorpay checkout.</p>
         </div>
       </aside>
@@ -743,13 +858,30 @@ export default function App() {
 
         {/* Topbar */}
         <header className="shrink-0 flex items-center justify-between px-7 py-3 border-b border-white/[0.07] bg-[#080810]/90 backdrop-blur-xl">
-          <div className="ml-12 md:ml-0">
-            <h2 className="text-[17px] font-semibold font-['Outfit',system-ui,sans-serif]">Shopping Assistant</h2>
+          <div className="flex flex-col">
+            <h2 className="text-[17px] font-semibold font-['Outfit',system-ui,sans-serif]">Shopping Agent</h2>
             <p className="text-xs text-gray-500 mt-0.5">Powered by Gemini &amp; Razorpay</p>
           </div>
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-emerald-400 bg-emerald-500/[0.08] border border-emerald-500/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400 animate-pulse" />
-            Agent Online
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium text-emerald-400 bg-emerald-500/[0.08] border border-emerald-500/20">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400 animate-pulse" />
+              Online
+            </div>
+            <div className={`${user ? 'hidden' : 'block'} hover:scale-105 transition-transform duration-200 shadow-[0_0_15px_rgba(108,99,255,0.4)] rounded-full border border-[#6C63FF]/30`}>
+              <div ref={googleButtonRef} className="flex items-center justify-center"></div>
+            </div>
+            
+            {user && (
+              <div className="flex items-center gap-3 bg-[#131320] border border-white/[0.05] rounded-full p-1 pr-3 shadow-md">
+                <img src={user.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'Felix'}`} alt="" className="w-8 h-8 rounded-full bg-white/10" />
+                <span className="text-xs text-gray-200 hidden md:block font-medium">{user.name?.split(' ')[0] || 'User'}</span>
+                <div className="w-[1px] h-4 bg-white/10 mx-1 hidden md:block"></div>
+                <button onClick={handleSignOut} 
+                  className="text-[11px] font-bold text-gray-400 hover:text-red-400 transition-colors cursor-pointer uppercase tracking-wider">
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
@@ -759,24 +891,27 @@ export default function App() {
             <div key={i} className={`flex flex-col animate-[fadeIn_0.3s_ease] ${m.from === 'user' ? 'self-end items-end max-w-[85%] md:max-w-[60%]' : 'self-start items-start max-w-[90%] md:max-w-[520px]'}`}>
               <span className={`text-[11px] font-semibold text-gray-500 mb-1.5 flex items-center gap-1.5`}>
                 {m.from === 'user'
-                  ? <><span className="w-4 h-4 rounded-full bg-gradient-to-br from-[#6C63FF] to-purple-500 flex items-center justify-center text-[8px] font-bold">Y</span> You</>
-                  : <><span className="text-sm">🤖</span> ShopAgent</>
+                  ? <><img src={user?.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'Felix'}`} className="w-4 h-4 rounded-full bg-white/10" /> {user?.name?.split(' ')[0] || 'You'}</>
+                  : <><span className="text-sm">🤖</span> Shopping Agent</>
                 }
               </span>
+              {m.imageUrl && (
+                <img src={m.imageUrl} alt="Uploaded" className="max-w-[200px] max-h-[150px] rounded-xl mb-2 border border-white/[0.1] object-cover" />
+              )}
               <div className={`px-5 py-3.5 text-[14.5px] leading-relaxed whitespace-pre-wrap break-words ${
                 m.from === 'user'
                   ? 'bg-gradient-to-br from-[#6C63FF] to-[#4C46C8] text-white rounded-2xl rounded-br-sm shadow-lg shadow-[#6C63FF]/20'
                   : 'bg-[#0f0f1a] border border-white/[0.07] text-gray-200 rounded-2xl rounded-bl-sm shadow-md shadow-black/20'
               }`}>
-                <Msg text={m.text} onProductClick={handleProductClick} />
+                <Msg text={m.text} onProductClick={handleProductClick} onSimulatePayment={handleSimulatePayment} />
               </div>
             </div>
           ))}
 
           {loading && (
             <div className="self-start flex flex-col max-w-[75%] animate-[fadeIn_0.3s_ease]">
-              <span className="text-[11px] font-semibold text-gray-500 mb-1.5 flex items-center gap-1.5">
-                <span className="text-sm">🤖</span> ShopAgent
+              <span className={`text-[11px] font-semibold text-gray-500 mb-1.5 flex items-center gap-1.5`}>
+                <span className="text-sm">🤖</span> Shopping Agent
               </span>
               <div className="px-5 py-4 bg-[#0f0f1a] border border-white/[0.07] rounded-2xl rounded-bl-sm flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
@@ -807,7 +942,29 @@ export default function App() {
               </div>
             </div>
             
+            {/* Image preview */}
+            {imagePreview && (
+              <div className="flex items-center gap-2 mb-2 w-full">
+                <img src={imagePreview.url} alt="Preview" className="w-14 h-14 rounded-xl object-cover border border-[#6C63FF]/30" />
+                <span className="text-xs text-gray-400 flex-1">Image attached — type a message or send directly</span>
+                <button onClick={() => setImagePreview(null)} className="text-gray-500 hover:text-red-400 text-lg cursor-pointer">✕</button>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 w-full bg-[#0f0f1a] border border-white/[0.07] rounded-[18px] px-2 md:px-3 py-1 focus-within:border-[#6C63FF]/40 focus-within:shadow-[0_0_0_3px_rgba(108,99,255,0.18)] transition-all">
+              {/* Image upload button */}
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+              <button onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed bg-transparent text-gray-500 hover:text-[#6C63FF] hover:bg-[#6C63FF]/10"
+                title="Upload image for visual search">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </button>
+
               {/* Voice button */}
               <button onClick={listening ? stopListening : startListening}
                 disabled={loading}
@@ -828,17 +985,17 @@ export default function App() {
               <input
                 ref={inputRef}
                 className="flex-1 bg-transparent border-none outline-none text-white text-[14.5px] py-2.5 placeholder:text-gray-600"
-                placeholder={listening ? "🎙️ Listening..." : "Ask me anything — search, compare, or buy..."}
+                placeholder={listening ? "🎙️ Listening..." : imagePreview ? "Describe what you're looking for..." : "Ask me anything — search, compare, or buy..."}
                 value={input} onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && send()}
                 disabled={loading}
               />
-              <button onClick={() => send()} disabled={loading || !input.trim()}
+              <button onClick={() => send()} disabled={loading || (!input.trim() && !imagePreview)}
                 className="w-9 h-9 rounded-[10px] bg-[#6C63FF] flex items-center justify-center shrink-0 shadow-md shadow-[#6C63FF]/20 hover:bg-[#5a52e0] hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95">
                 <svg className="w-4 h-4 fill-white translate-x-[-1px]" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
               </button>
             </div>
-            <p className="text-[11px] text-gray-600 text-center mt-2 w-full">Try: "Compare the mic and headphones" · "Add the keyboard to my cart"</p>
+            <p className="text-[11px] text-gray-600 text-center mt-2 w-full">Try: "Compare the mic and headphones" · 📸 Upload an image to find matching products</p>
           </div>
         </footer>
       </main>

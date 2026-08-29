@@ -1,6 +1,7 @@
 import { loadCatalog } from '../services/catalog.js';
 import { createPaymentLink } from '../services/payment.js';
 import { addToCart, removeFromCart, getCart } from '../services/cart.js';
+import { createOrder, getOrdersBySession } from '../services/orders.js';
 import razorpay from '../config/razorpay.js';
 
 const catalog = loadCatalog();
@@ -8,6 +9,7 @@ const catalog = loadCatalog();
 /**
  * Tool handler implementations that the AI can invoke.
  * Each function corresponds to a tool defined in definitions.js.
+ * All handlers receive (args, sessionId) — sessionId is injected by chatController.
  */
 const toolHandlers = {
   searchCatalog: ({ query }) => {
@@ -21,7 +23,10 @@ const toolHandlers = {
     return { products };
   },
 
-  generatePaymentLink: async ({ productId }) => {
+  generatePaymentLink: async ({ productId }, sessionId) => {
+    if (sessionId === 'guest') {
+      return { error: "Please sign in with Google first to generate a payment link." };
+    }
     const product = catalog.find(p => p.id === productId);
     if (!product) return { error: "Product not found in catalog." };
     if (!product.inStock) return { error: "Product is out of stock." };
@@ -29,20 +34,23 @@ const toolHandlers = {
     return createPaymentLink(product);
   },
 
-  addToCart: ({ productId, quantity }) => {
-    return addToCart({ productId, quantity: quantity || 1 });
+  addToCart: ({ productId, quantity }, sessionId) => {
+    return addToCart({ productId, quantity: quantity || 1 }, sessionId);
   },
 
-  removeFromCart: ({ productId }) => {
-    return removeFromCart({ productId });
+  removeFromCart: ({ productId }, sessionId) => {
+    return removeFromCart({ productId }, sessionId);
   },
 
-  getCart: () => {
-    return getCart();
+  getCart: (args, sessionId) => {
+    return getCart(args, sessionId);
   },
 
-  generateCartCheckout: async () => {
-    const cartData = getCart();
+  generateCartCheckout: async (args, sessionId) => {
+    if (sessionId === 'guest') {
+      return { error: "Please sign in with Google first to checkout." };
+    }
+    const cartData = getCart(null, sessionId);
     if (!cartData.cart || cartData.cart.length === 0) {
       return { error: "Your cart is empty. Add some products first!" };
     }
@@ -59,7 +67,7 @@ const toolHandlers = {
         description: `Cart checkout: ${description}`,
         customer: {
           name: "Valued Customer",
-          email: "customer@example.com",
+          email: sessionId !== 'guest' ? sessionId : "customer@example.com",
           contact: "+919876543210"
         },
         notify: { sms: false, email: false },
@@ -71,16 +79,49 @@ const toolHandlers = {
       };
 
       const link = await razorpay.paymentLink.create(paymentLinkReq);
+
+      // Create an order record
+      const order = createOrder({
+        sessionId,
+        items: cartData.cart,
+        total: cartData.total,
+        paymentLinkId: link.id,
+      });
+
       return {
         success: true,
         paymentLink: link.short_url,
         total: cartData.total,
         itemCount: cartData.itemCount,
         items: cartData.cart,
-        message: `Checkout link generated for ${cartData.itemCount} item(s) totalling ₹${cartData.total.toLocaleString('en-IN')}.`
+        orderId: order.orderId,
+        message: `Checkout link generated for ${cartData.itemCount} item(s) totalling ₹${cartData.total.toLocaleString('en-IN')}. Your order ID is ${order.orderId}.`
       };
     } catch (error) {
       console.error("[Cart Checkout] Razorpay Error:", error);
+
+      // Fallback for Razorpay test mode rate limit
+      if (error?.statusCode === 429) {
+        console.log("[Cart Checkout] Mocking link due to rate limit.");
+        const mockLinkId = `mock_plink_${Date.now()}`;
+        const order = createOrder({
+          sessionId,
+          items: cartData.cart,
+          total: cartData.total,
+          paymentLinkId: mockLinkId,
+        });
+
+        return {
+          success: true,
+          paymentLink: `https://rzp.io/i/${mockLinkId}`,
+          total: cartData.total,
+          itemCount: cartData.itemCount,
+          items: cartData.cart,
+          orderId: order.orderId,
+          message: `(Mock) Checkout link generated for ${cartData.itemCount} item(s) totalling ₹${cartData.total.toLocaleString('en-IN')}. Your order ID is ${order.orderId}.`
+        };
+      }
+
       return { error: "Failed to generate checkout link. Please try again." };
     }
   },
@@ -114,6 +155,14 @@ const toolHandlers = {
       comparisonFields: allSpecKeys,
       message: `Comparing ${products.map(p => p.name).join(' vs ')}.`
     };
+  },
+
+  checkOrderStatus: (args, sessionId) => {
+    const result = getOrdersBySession(sessionId);
+    if (result.count === 0) {
+      return { message: "You don't have any orders yet. Add items to your cart and checkout to place an order!" };
+    }
+    return result;
   }
 };
 

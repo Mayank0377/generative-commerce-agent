@@ -92,6 +92,14 @@ export const tools = [
           },
           required: ["productIds"]
         }
+      },
+      {
+        name: "checkOrderStatus",
+        description: "Check the status of user's orders. Use when the user asks about their order, delivery status, or says 'where is my order'.",
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {}
+        }
       }
     ]
   }

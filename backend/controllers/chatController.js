@@ -23,14 +23,33 @@ async function generateWithRetry(request, maxRetries = 3) {
 /**
  * Handles a chat message: sends to Gemini, executes any tool calls,
  * and returns the final AI response with updated history.
+ * Supports multimodal (text + image) input.
  */
 export async function handleChatMessage(req, res) {
   try {
-    const { message } = req.body;
+    const { message, image } = req.body;
     let history = req.body.history || [];
+    const sessionId = req.user?.email || 'guest';
+
+    // Build the user message parts
+    const userParts = [];
+
+    // If an image is attached, add it as inlineData (Gemini multimodal)
+    if (image && image.data && image.mimeType) {
+      userParts.push({
+        inlineData: {
+          data: image.data,
+          mimeType: image.mimeType,
+        }
+      });
+      console.log(`[Chat] Image attached (${image.mimeType}, ${Math.round(image.data.length / 1024)}KB)`);
+    }
+
+    // Add the text message
+    userParts.push({ text: message || "What product from our catalog matches this image?" });
 
     // Add new user message to history
-    history.push({ role: "user", parts: [{ text: message }] });
+    history.push({ role: "user", parts: userParts });
 
     let result = await generateWithRetry({ contents: history });
     let response = result.response;
@@ -49,7 +68,8 @@ export async function handleChatMessage(req, res) {
       let functionResult;
       try {
         if (toolHandlers[functionName]) {
-          functionResult = await toolHandlers[functionName](args);
+          // Pass sessionId as second argument to all tool handlers
+          functionResult = await toolHandlers[functionName](args, sessionId);
         } else {
           functionResult = { error: `Function ${functionName} not found.` };
         }
