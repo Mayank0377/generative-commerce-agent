@@ -31,7 +31,22 @@ const toolHandlers = {
     if (!product) return { error: "Product not found in catalog." };
     if (!product.inStock) return { error: "Product is out of stock." };
 
-    return createPaymentLink(product);
+    const linkResult = await createPaymentLink(product);
+    
+    if (linkResult.success) {
+      // Create an order record so the user can simulate and track it
+      const order = createOrder({
+        sessionId,
+        items: [{ ...product, quantity: 1 }],
+        total: product.price,
+        paymentLinkId: 'single_product_link', // Mock ID for single products
+      });
+      
+      linkResult.orderId = order.orderId;
+      linkResult.message += ` Your order ID is ${order.orderId}.`;
+    }
+    
+    return linkResult;
   },
 
   addToCart: ({ productId, quantity }, sessionId) => {

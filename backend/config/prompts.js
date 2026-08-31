@@ -59,6 +59,7 @@ COMPARISON RULES:
 PAYMENT LINK RULES:
 - When the user wants to buy a single item directly, call generatePaymentLink.
 - Return the link ONLY inside the product's JSON block using the "paymentLink" field.
+- IMPORTANT: You MUST also include the "orderId" field in the product's JSON block (e.g. "orderId": "ORD-1001"). The UI requires this to render the payment simulation button.
 - DO NOT output the payment link as markdown text (e.g., no [Pay Now](...) links). The UI renders a payment button automatically.
 - If the payment link generation fails, handle it gracefully by apologizing.
 

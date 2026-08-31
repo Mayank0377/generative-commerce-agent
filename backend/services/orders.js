@@ -49,9 +49,12 @@ export function getOrdersBySession(sessionId) {
       userOrders.push(order);
     }
   }
+  const activeCount = userOrders.filter(o => o.status !== 'pending').length;
+  
   return {
     orders: userOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     count: userOrders.length,
+    activeCount
   };
 }
 
