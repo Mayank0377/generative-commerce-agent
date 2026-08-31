@@ -66,4 +66,4 @@ At scale, the static catalog is replaced by a production database (e.g., **Postg
    Open `http://localhost:5174` in your browser.
 
 ---
-*Built for the Razorpay AI Commerce Hackathon 2026*
+*Built for the Razorpay AI Buildathon 2026*
