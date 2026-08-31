@@ -1,5 +1,7 @@
 # 🤖 QuickShop – AI Commerce by Razorpay
 
+![QuickShop Hero Interface](./assets/hero.png)
+
 An intelligent, conversational AI shopping assistant powered by **Google Gemini** and **Razorpay**. 
 QuickShop transforms the traditional e-commerce catalog browsing experience into a seamless, interactive chat interface where users can search, compare, visually identify, and instantly purchase products.
 
@@ -7,12 +9,20 @@ QuickShop transforms the traditional e-commerce catalog browsing experience into
 
 ## ✨ Features
 
+![QuickShop Conversational Checkout](./assets/chat.png)
+
 - **Conversational Search:** Ask for products naturally (e.g., *"Find me a good microphone under ₹5000"*).
 - **📸 Visual Search (Multimodal):** Upload a picture of a product, and the AI will identify it and find matching items in the catalog using Gemini's Vision capabilities.
 - **🔄 Smart Product Comparison:** Ask the AI to compare two products, and it will generate a clean, glassmorphic comparison table.
 - **🛒 Intelligent Cart Management:** Add or remove items from your cart using natural language.
 - **💳 Instant Razorpay Checkout:** AI securely generates a Razorpay payment link dynamically when you are ready to check out, directly in the chat.
+
+![Razorpay Payment Integration](./assets/razorpay.png)
+
 - **📦 Conversational Order Tracking:** Just ask the AI *"Where is my order?"* to instantly get your live order status.
+
+![Live Order Tracking](./assets/order.png)
+
 - **🔐 Seamless Auth:** Google Sign-in integration for secure, personalized sessions.
 
 ---
