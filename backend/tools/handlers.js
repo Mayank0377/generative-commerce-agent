@@ -50,6 +50,9 @@ const toolHandlers = {
   },
 
   addToCart: ({ productId, quantity }, sessionId) => {
+    if (sessionId === 'guest') {
+      return { error: "Please sign in with Google first to add items to your cart. 🔐" };
+    }
     return addToCart({ productId, quantity: quantity || 1 }, sessionId);
   },
 
