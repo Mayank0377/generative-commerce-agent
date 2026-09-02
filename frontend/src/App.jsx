@@ -726,8 +726,10 @@ export default function App() {
 
   const handleAddToCartFromModal = useCallback((product) => {
     send(`Add ${product.name} to my cart`)
-    showToast(`${product.name} added to cart!`, 'success')
-  }, [history])
+    if (user) {
+      showToast(`${product.name} added to cart!`, 'success')
+    }
+  }, [history, user, send, showToast])
 
   const handleVoiceResult = useCallback((transcript, error) => {
     if (error) { showToast(error, 'error'); return }
